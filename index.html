@@ -8,60 +8,62 @@
 <body>
   <h1>Object Detection and Height Tracking</h1>
   <input type="file" id="imageInput" accept="image/*">
-  <button onclick="processImage()">Process Image</button>
+  <button onclick="detectObjects()">Detect Objects</button>
   <div id="output"></div>
+  <div id="imageContainer"></div>
   <a id="downloadLink" style="display: none;">Download Processed Image</a>
 
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
   <script>
-    async function processImage() {
+    const knownHeightPixels = 150; // Known height of the object in pixels
+    const knownHeightMeters = 1.8; // Known height of the object in meters
+
+    async function detectObjects() {
       const imageInput = document.getElementById('imageInput');
       const outputDiv = document.getElementById('output');
+      const imageContainer = document.getElementById('imageContainer');
       const downloadLink = document.getElementById('downloadLink');
       outputDiv.innerHTML = '';
+      imageContainer.innerHTML = '';
       downloadLink.style.display = 'none';
 
       const image = await loadImage(imageInput.files[0]);
-      const objects = await detectObjects(image);
+      const model = await cocoSsd.load();
+      const predictions = await model.detect(image);
 
-      // Display detected objects
-      const pObjects = document.createElement('p');
-      pObjects.textContent = `Detected Objects: ${objects.join(', ')}`;
-      outputDiv.appendChild(pObjects);
+      // Display the uploaded image
+      const imgElement = document.createElement('img');
+      imgElement.src = image.src;
+      imgElement.width = 400;
+      imageContainer.appendChild(imgElement);
 
-      // Estimate height
-      const height = estimateHeight(objects);
-      const pHeight = document.createElement('p');
-      pHeight.textContent = `Estimated Height: ${height.toFixed(2)} meters`;
-      outputDiv.appendChild(pHeight);
-
-      // Display the processed image
+      // Draw bounding boxes and display detected objects' heights
       const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
       canvas.width = image.width;
       canvas.height = image.height;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(image, 0, 0);
-      outputDiv.appendChild(canvas);
+      ctx.drawImage(imgElement, 0, 0);
 
-      // Convert the canvas to a data URL and create a download link for the processed image
+      predictions.forEach(prediction => {
+        const scaledHeightMeters = (prediction.bbox[3] - prediction.bbox[1]) * (knownHeightMeters / knownHeightPixels); // Height in meters
+        ctx.beginPath();
+        ctx.lineWidth = '2';
+        ctx.strokeStyle = 'red';
+        ctx.rect(...prediction.bbox);
+        ctx.stroke();
+        ctx.font = '16px Arial';
+        ctx.fillStyle = 'red';
+        ctx.fillText(`${prediction.class}: Height - ${scaledHeightMeters.toFixed(2)} meters`, prediction.bbox[0], prediction.bbox[1] - 5);
+      });
+
+      imageContainer.appendChild(canvas);
+
+      // Convert the canvas to a data URL and create a download link
       const processedImageUrl = canvas.toDataURL('image/jpeg');
       downloadLink.href = processedImageUrl;
       downloadLink.download = 'processed_image.jpg';
       downloadLink.style.display = 'block';
-    }
-
-    async function detectObjects(image) {
-      const model = await cocoSsd.load();
-      const predictions = await model.detect(image);
-      return predictions.map(prediction => prediction.class);
-    }
-
-    function estimateHeight(objects) {
-      // Replace this with your own height estimation logic based on detected objects
-      // For demonstration purposes, assume an average height of 1.7 meters
-      const averageHeightMeters = 1.7;
-      return averageHeightMeters;
     }
 
     function loadImage(file) {
