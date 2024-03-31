@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Object Detection and Age Estimation</title>
+<title>Object Detection and Age Tracking</title>
 </head>
 <body>
-  <h1>Object Detection and Age Estimation</h1>
+  <h1>Object Detection and Age Tracking</h1>
   <input type="file" id="imageInput" accept="image/*">
   <button onclick="processImage()">Process Image</button>
   <div id="output"></div>
@@ -45,6 +45,9 @@
       downloadLink.href = processedImageUrl;
       downloadLink.download = 'processed_image.jpg';
       downloadLink.style.display = 'block';
+
+      // Save the processed image to local storage
+      localStorage.setItem('processedImage', processedImageUrl);
     }
 
     async function detectObjects(image) {
