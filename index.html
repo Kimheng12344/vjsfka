@@ -3,81 +3,51 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Object Detection and Height Tracking</title>
+<title>Age Estimation</title>
 </head>
 <body>
-  <h1>Object Detection and Height Tracking</h1>
+  <h1>Age Estimation</h1>
   <input type="file" id="imageInput" accept="image/*">
-  <button onclick="detectObjects()">Detect Objects</button>
+  <button onclick="estimateAge()">Estimate Age</button>
   <div id="output"></div>
-  <div id="imageContainer"></div>
-  <a id="downloadLink" style="display: none;">Download Processed Image</a>
 
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
-  <script>
-    const knownHeightPixels = 150; // Known height of the object in pixels
-    const knownHeightMeters = 1.8; // Known height of the object in meters
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-api"></script>
+<script>
+  async function estimateAge() {
+    const imageInput = document.getElementById('imageInput');
+    const outputDiv = document.getElementById('output');
+    outputDiv.innerHTML = '';
 
-    async function detectObjects() {
-      const imageInput = document.getElementById('imageInput');
-      const outputDiv = document.getElementById('output');
-      const imageContainer = document.getElementById('imageContainer');
-      const downloadLink = document.getElementById('downloadLink');
-      outputDiv.innerHTML = '';
-      imageContainer.innerHTML = '';
-      downloadLink.style.display = 'none';
+    const image = await loadImage(imageInput.files[0]);
+    const faceDetection = await faceapi.detectSingleFace(image).withAgeAndGender();
+    if (faceDetection) {
+      const age = faceDetection.age;
+      const gender = faceDetection.gender;
 
-      const image = await loadImage(imageInput.files[0]);
-      const model = await cocoSsd.load();
-      const predictions = await model.detect(image);
-
-      // Display the uploaded image
-      const imgElement = document.createElement('img');
-      imgElement.src = image.src;
-      imgElement.width = 400;
-      imageContainer.appendChild(imgElement);
-
-      // Draw bounding boxes and display detected objects' heights
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      canvas.width = image.width;
-      canvas.height = image.height;
-      ctx.drawImage(imgElement, 0, 0);
-
-      predictions.forEach(prediction => {
-        const scaledHeightMeters = (prediction.bbox[3] - prediction.bbox[1]) * (knownHeightMeters / knownHeightPixels); // Height in meters
-        ctx.beginPath();
-        ctx.lineWidth = '2';
-        ctx.strokeStyle = 'red';
-        ctx.rect(...prediction.bbox);
-        ctx.stroke();
-        ctx.font = '16px Arial';
-        ctx.fillStyle = 'red';
-        ctx.fillText(`${prediction.class}: Height - ${scaledHeightMeters.toFixed(2)} meters`, prediction.bbox[0], prediction.bbox[1] - 5);
-      });
-
-      imageContainer.appendChild(canvas);
-
-      // Convert the canvas to a data URL and create a download link
-      const processedImageUrl = canvas.toDataURL('image/jpeg');
-      downloadLink.href = processedImageUrl;
-      downloadLink.download = 'processed_image.jpg';
-      downloadLink.style.display = 'block';
+      const p = document.createElement('p');
+      p.textContent = `Age: ${age.toFixed(1)} years, Gender: ${gender}`;
+      outputDiv.appendChild(p);
+    } else {
+      const p = document.createElement('p');
+      p.textContent = 'No face detected.';
+      outputDiv.appendChild(p);
     }
+  }
 
-    function loadImage(file) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const image = new Image();
-          image.onload = () => resolve(image);
-          image.onerror = (error) => reject(error);
-          image.src = reader.result;
-        };
-        reader.readAsDataURL(file);
-      });
-    }
-  </script>
+  function loadImage(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = (error) => reject(error);
+        image.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+</script>
+  
 </body>
 </html>
