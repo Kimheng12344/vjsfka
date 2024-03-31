@@ -10,16 +10,18 @@
 <video id="videoElement" width="640" height="480" autoplay></video>
 <button onclick="startCamera()">Start Camera</button>
 <button onclick="stopCamera()">Stop Camera</button>
+<button onclick="switchCamera()">Switch Camera</button>
 
 <script>
   let stream;
+  let currentCamera = 'environment'; // 'user' for front camera, 'environment' for rear camera
 
   async function startCamera() {
     const videoElement = document.getElementById('videoElement');
 
     try {
-      // Request access to the camera
-      stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      // Request access to the camera with the current camera setting
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: currentCamera } });
 
       // Attach the camera stream to the video element
       videoElement.srcObject = stream;
@@ -34,6 +36,17 @@
       tracks.forEach(track => track.stop());
       stream = null;
     }
+  }
+
+  function switchCamera() {
+    if (currentCamera === 'user') {
+      currentCamera = 'environment';
+    } else {
+      currentCamera = 'user';
+    }
+
+    stopCamera();
+    startCamera();
   }
 </script>
 </body>
