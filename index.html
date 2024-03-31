@@ -1,18 +1,54 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>YouTube Video Downloader</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Face Detection</title>
 </head>
 <body>
-    <h1>YouTube Video Downloader</h1>
-    <form action="/download" method="post">
-        <input type="text" name="video_url" placeholder="Enter YouTube Video URL">
-        <button type="submit">Download</button>
-    </form>
-    {% if message %}
-        <p>{{ message }}</p>
-    {% endif %}
+<h1>Face Detection using Camera</h1>
+<video id="videoElement" width="640" height="480" autoplay></video>
+<canvas id="canvasElement" width="640" height="480"></canvas>
+
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-api"></script>
+<script>
+  // Load face-api.js models
+  Promise.all([
+    faceapi.nets.tinyFaceDetector.loadFromUri('/models'),
+    faceapi.nets.faceLandmark68Net.loadFromUri('/models')
+  ]).then(startVideo)
+
+  async function startVideo() {
+    const videoElement = document.getElementById('videoElement');
+
+    // Use getUserMedia API to access the camera
+    const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
+    videoElement.srcObject = stream;
+    videoElement.play();
+
+    // Start face detection
+    detectFace();
+  }
+
+  async function detectFace() {
+    const videoElement = document.getElementById('videoElement');
+    const canvasElement = document.getElementById('canvasElement');
+    const displaySize = { width: videoElement.width, height: videoElement.height };
+    faceapi.matchDimensions(canvasElement, displaySize);
+
+    setInterval(async () => {
+      const detections = await faceapi.detectAllFaces(videoElement, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks();
+      const resizedDetections = faceapi.resizeResults(detections, displaySize);
+      
+      // Clear canvas before drawing new detections
+      canvasElement.getContext('2d').clearRect(0, 0, canvasElement.width, canvasElement.height);
+      
+      // Draw face landmarks
+      faceapi.draw.drawFaceLandmarks(canvasElement, resizedDetections);
+    }, 100);
+  }
+</script>
 </body>
 </html>
