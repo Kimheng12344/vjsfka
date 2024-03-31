@@ -3,78 +3,53 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>QR Code Scanner</title>
+<title>Object Detection</title>
 </head>
 <body>
-<h1>QR Code Scanner</h1>
-<video id="videoElement" width="640" height="480" autoplay></video>
-<button onclick="startCamera()">Start Camera</button>
-<button onclick="stopCamera()">Stop Camera</button>
-<button onclick="switchCamera()">Switch Camera</button>
-<button onclick="startQRCodeScanner()">Start QR Code Scanner</button>
-<div id="qrCodeResult"></div>
+<h1>Object Detection</h1>
+<input type="file" id="imageInput" accept="image/*">
+<button onclick="detectObjects()">Detect Objects</button>
+<canvas id="outputCanvas" width="640" height="480"></canvas>
 
-<script src="https://cdn.jsdelivr.net/npm/@zxing/library@3.0.0"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
 <script>
-  let stream;
-  let currentCamera = 'environment'; // 'user' for front camera, 'environment' for rear camera
-  let codeReader;
+  async function detectObjects() {
+    const imageInput = document.getElementById('imageInput');
+    const outputCanvas = document.getElementById('outputCanvas');
+    const ctx = outputCanvas.getContext('2d');
 
-  async function startCamera() {
-    const videoElement = document.getElementById('videoElement');
+    const image = await loadImage(imageInput.files[0]);
+    outputCanvas.width = image.width;
+    outputCanvas.height = image.height;
+    ctx.drawImage(image, 0, 0);
 
-    try {
-      // Request access to the camera with the current camera setting
-      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: currentCamera } });
+    const model = await cocoSsd.load();
+    const predictions = await model.detect(outputCanvas);
 
-      // Attach the camera stream to the video element
-      videoElement.srcObject = stream;
-    } catch (error) {
-      console.error('Error accessing the camera:', error);
-    }
-  }
-
-  function stopCamera() {
-    if (stream) {
-      const tracks = stream.getTracks();
-      tracks.forEach(track => track.stop());
-      stream = null;
-    }
-  }
-
-  function switchCamera() {
-    if (currentCamera === 'user') {
-      currentCamera = 'environment';
-    } else {
-      currentCamera = 'user';
-    }
-
-    stopCamera();
-    startCamera();
-  }
-
-  function startQRCodeScanner() {
-    // Create a code reader instance
-    codeReader = new ZXing.BrowserQRCodeReader();
-
-    // Start scanning for QR codes
-    codeReader.decodeFromVideoDevice(null, 'videoElement', (result, err) => {
-      if (result) {
-        const qrCodeResultElement = document.getElementById('qrCodeResult');
-        qrCodeResultElement.textContent = `QR Code Detected: ${result.text}`;
-        stopQRCodeScanner();
-      }
-      if (err && !(err instanceof ZXing.NotFoundException)) {
-        console.error('QR Code scan error:', err);
-      }
+    predictions.forEach(prediction => {
+      ctx.beginPath();
+      ctx.lineWidth = '2';
+      ctx.strokeStyle = 'red';
+      ctx.rect(...prediction.bbox);
+      ctx.stroke();
+      ctx.font = '16px Arial';
+      ctx.fillStyle = 'red';
+      ctx.fillText(`${prediction.class} (${Math.round(prediction.score * 100)}%)`, prediction.bbox[0], prediction.bbox[1] - 5);
     });
   }
 
-  function stopQRCodeScanner() {
-    if (codeReader) {
-      codeReader.reset();
-      codeReader = null;
-    }
+  function loadImage(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = (error) => reject(error);
+        image.src = reader.result;
+      };
+      reader.readAsDataURL(file);
+    });
   }
 </script>
 </body>
