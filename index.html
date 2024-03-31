@@ -3,20 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Open Camera</title>
+<title>QR Code Scanner</title>
 </head>
 <body>
-<h1>Open Camera</h1>
+<h1>QR Code Scanner</h1>
 <video id="videoElement" width="640" height="480" autoplay></video>
 <button onclick="startCamera()">Start Camera</button>
 <button onclick="stopCamera()">Stop Camera</button>
 <button onclick="switchCamera()">Switch Camera</button>
-<button onclick="captureFrame()">Capture</button> <!-- New button for capturing frames -->
-<img id="capturedImage" src="#" alt="Captured Image"> <!-- Placeholder for captured image -->
+<button onclick="startQRCodeScanner()">Start QR Code Scanner</button>
+<div id="qrCodeResult"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@3.0.0"></script>
 <script>
   let stream;
   let currentCamera = 'environment'; // 'user' for front camera, 'environment' for rear camera
+  let codeReader;
 
   async function startCamera() {
     const videoElement = document.getElementById('videoElement');
@@ -51,24 +53,29 @@
     startCamera();
   }
 
-  function captureFrame() {
-    const videoElement = document.getElementById('videoElement');
-    const capturedImageElement = document.getElementById('capturedImage');
-    
-    // Create a canvas element and draw the current frame from the video element
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-    canvas.width = videoElement.videoWidth;
-    canvas.height = videoElement.videoHeight;
-    context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
-    
-    // Convert the canvas image to a data URL and set it as the src for the captured image element
-    const dataURL = canvas.toDataURL('image/jpeg');
-    capturedImageElement.src = dataURL;
-    
-    // Optionally, you can save the dataURL or send it to a server for further processing
+  function startQRCodeScanner() {
+    // Create a code reader instance
+    codeReader = new ZXing.BrowserQRCodeReader();
+
+    // Start scanning for QR codes
+    codeReader.decodeFromVideoDevice(null, 'videoElement', (result, err) => {
+      if (result) {
+        const qrCodeResultElement = document.getElementById('qrCodeResult');
+        qrCodeResultElement.textContent = `QR Code Detected: ${result.text}`;
+        stopQRCodeScanner();
+      }
+      if (err && !(err instanceof ZXing.NotFoundException)) {
+        console.error('QR Code scan error:', err);
+      }
+    });
+  }
+
+  function stopQRCodeScanner() {
+    if (codeReader) {
+      codeReader.reset();
+      codeReader = null;
+    }
   }
 </script>
 </body>
-  </html>
-  
+</html>
