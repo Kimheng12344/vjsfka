@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Object Detection and Age Tracking</title>
+<title>Object Detection and Height Tracking</title>
 </head>
 <body>
-  <h1>Object Detection and Age Tracking</h1>
+  <h1>Object Detection and Height Tracking</h1>
   <input type="file" id="imageInput" accept="image/*">
   <button onclick="processImage()">Process Image</button>
   <div id="output"></div>
@@ -14,7 +14,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-api"></script>
   <script>
     async function processImage() {
       const imageInput = document.getElementById('imageInput');
@@ -25,19 +24,24 @@
 
       const image = await loadImage(imageInput.files[0]);
       const objects = await detectObjects(image);
-      const age = await estimateAge(image);
 
-      // Display detected objects and estimated age
+      // Display detected objects
       const pObjects = document.createElement('p');
       pObjects.textContent = `Detected Objects: ${objects.join(', ')}`;
       outputDiv.appendChild(pObjects);
 
-      const pAge = document.createElement('p');
-      pAge.textContent = `Estimated Age: ${age.toFixed(1)} years`;
-      outputDiv.appendChild(pAge);
+      // Estimate height
+      const height = estimateHeight(objects);
+      const pHeight = document.createElement('p');
+      pHeight.textContent = `Estimated Height: ${height.toFixed(2)} meters`;
+      outputDiv.appendChild(pHeight);
 
-      // Display the processed image with bounding boxes and age estimation
-      const canvas = await drawObjectsAndAge(image, objects, age);
+      // Display the processed image
+      const canvas = document.createElement('canvas');
+      canvas.width = image.width;
+      canvas.height = image.height;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(image, 0, 0);
       outputDiv.appendChild(canvas);
 
       // Convert the canvas to a data URL and create a download link for the processed image
@@ -45,9 +49,6 @@
       downloadLink.href = processedImageUrl;
       downloadLink.download = 'processed_image.jpg';
       downloadLink.style.display = 'block';
-
-      // Save the processed image to local storage
-      localStorage.setItem('processedImage', processedImageUrl);
     }
 
     async function detectObjects(image) {
@@ -56,47 +57,11 @@
       return predictions.map(prediction => prediction.class);
     }
 
-    async function estimateAge(image) {
-      await faceapi.nets.faceRecognitionNet.loadFromUri('/models');
-      await faceapi.nets.faceLandmark68Net.loadFromUri('/models');
-      await faceapi.nets.ssdMobilenetv1.loadFromUri('/models');
-      const detections = await faceapi.detectAllFaces(image).withAgeAndGender();
-      if (detections.length > 0) {
-        return detections[0].age;
-      } else {
-        return null;
-      }
-    }
-
-    async function drawObjectsAndAge(image, objects, age) {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      canvas.width = image.width;
-      canvas.height = image.height;
-      ctx.drawImage(image, 0, 0);
-
-      // Draw bounding boxes for detected objects
-      const model = await cocoSsd.load();
-      const predictions = await model.detect(image);
-      predictions.forEach(prediction => {
-        ctx.beginPath();
-        ctx.lineWidth = '2';
-        ctx.strokeStyle = 'red';
-        ctx.rect(...prediction.bbox);
-        ctx.stroke();
-        ctx.font = '16px Arial';
-        ctx.fillStyle = 'red';
-        ctx.fillText(`${prediction.class}`, prediction.bbox[0], prediction.bbox[1] - 5);
-      });
-
-      // Display age estimation if available
-      if (age !== null) {
-        ctx.font = '16px Arial';
-        ctx.fillStyle = 'blue';
-        ctx.fillText(`Age: ${age.toFixed(1)} years`, 10, 20);
-      }
-
-      return canvas;
+    function estimateHeight(objects) {
+      // Replace this with your own height estimation logic based on detected objects
+      // For demonstration purposes, assume an average height of 1.7 meters
+      const averageHeightMeters = 1.7;
+      return averageHeightMeters;
     }
 
     function loadImage(file) {
