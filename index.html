@@ -3,54 +3,57 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Object Detection</title>
+<title>Camera Object Detection</title>
 </head>
 <body>
-<h1>Object Detection</h1>
-<input type="file" id="imageInput" accept="image/*">
-<button onclick="detectObjects()">Detect Objects</button>
+<h1>Camera Object Detection</h1>
+<video id="videoElement" width="640" height="480" autoplay></video>
 <canvas id="outputCanvas" width="640" height="480"></canvas>
 
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
 <script>
-  async function detectObjects() {
-    const imageInput = document.getElementById('imageInput');
-    const outputCanvas = document.getElementById('outputCanvas');
-    const ctx = outputCanvas.getContext('2d');
+  async function startCamera() {
+    const videoElement = document.getElementById('videoElement');
 
-    const image = await loadImage(imageInput.files[0]);
-    outputCanvas.width = image.width;
-    outputCanvas.height = image.height;
-    ctx.drawImage(image, 0, 0);
+    try {
+      // Request access to the camera
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      videoElement.srcObject = stream;
 
-    const model = await cocoSsd.load();
-    const predictions = await model.detect(outputCanvas);
+      // Load the COCO-SSD model
+      const model = await cocoSsd.load();
 
-    predictions.forEach(prediction => {
-      ctx.beginPath();
-      ctx.lineWidth = '2';
-      ctx.strokeStyle = 'red';
-      ctx.rect(...prediction.bbox);
-      ctx.stroke();
-      ctx.font = '16px Arial';
-      ctx.fillStyle = 'red';
-      ctx.fillText(`${prediction.class} (${Math.round(prediction.score * 100)}%)`, prediction.bbox[0], prediction.bbox[1] - 5);
-    });
-  }
+      // Perform object detection on each video frame
+      videoElement.addEventListener('loadeddata', async () => {
+        const outputCanvas = document.getElementById('outputCanvas');
+        const ctx = outputCanvas.getContext('2d');
 
-  function loadImage(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const image = new Image();
-        image.onload = () => resolve(image);
-        image.onerror = (error) => reject(error);
-        image.src = reader.result;
-      };
-      reader.readAsDataURL(file);
-    });
+        outputCanvas.width = videoElement.videoWidth;
+        outputCanvas.height = videoElement.videoHeight;
+
+        // Continuously detect objects and draw bounding boxes
+        setInterval(async () => {
+          const predictions = await model.detect(videoElement);
+          ctx.clearRect(0, 0, outputCanvas.width, outputCanvas.height);
+
+          predictions.forEach(prediction => {
+            ctx.beginPath();
+            ctx.lineWidth = '2';
+            ctx.strokeStyle = 'red';
+            ctx.rect(...prediction.bbox);
+            ctx.stroke();
+            ctx.font = '16px Arial';
+            ctx.fillStyle = 'red';
+            ctx.fillText(`${prediction.class} (${Math.round(prediction.score * 100)}%)`, prediction.bbox[0], prediction.bbox[1] - 5);
+          });
+        }, 1000 / 30); // 30 FPS
+      });
+    } catch (error) {
+      console.error('Error accessing the camera:', error);
+    }
   }
 </script>
+<button onclick="startCamera()">Start Camera</button>
 </body>
 </html>
