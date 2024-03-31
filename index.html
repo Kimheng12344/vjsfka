@@ -10,6 +10,7 @@
   <input type="file" id="imageInput" accept="image/*">
   <button onclick="detectObjects()">Detect Objects</button>
   <div id="output"></div>
+  <div id="imageContainer"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
@@ -17,11 +18,19 @@
     async function detectObjects() {
       const imageInput = document.getElementById('imageInput');
       const outputDiv = document.getElementById('output');
+      const imageContainer = document.getElementById('imageContainer');
       outputDiv.innerHTML = '';
+      imageContainer.innerHTML = '';
 
       const image = await loadImage(imageInput.files[0]);
       const model = await cocoSsd.load();
       const predictions = await model.detect(image);
+
+      // Display the uploaded image
+      const imgElement = document.createElement('img');
+      imgElement.src = image.src;
+      imgElement.width = 400;
+      imageContainer.appendChild(imgElement);
 
       predictions.forEach(prediction => {
         const p = document.createElement('p');
