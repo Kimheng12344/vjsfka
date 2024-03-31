@@ -16,6 +16,9 @@
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
   <script>
+    const knownHeightPixels = 150; // Known height of the object in pixels
+    const knownHeightMeters = 1.8; // Known height of the object in meters
+
     async function detectObjects() {
       const imageInput = document.getElementById('imageInput');
       const outputDiv = document.getElementById('output');
@@ -43,6 +46,7 @@
       ctx.drawImage(imgElement, 0, 0);
 
       predictions.forEach(prediction => {
+        const scaledHeightMeters = (prediction.bbox[3] - prediction.bbox[1]) * (knownHeightMeters / knownHeightPixels); // Height in meters
         ctx.beginPath();
         ctx.lineWidth = '2';
         ctx.strokeStyle = 'red';
@@ -50,7 +54,7 @@
         ctx.stroke();
         ctx.font = '16px Arial';
         ctx.fillStyle = 'red';
-        ctx.fillText(`${prediction.class}: Height - ${prediction.bbox[3] - prediction.bbox[1]} pixels`, prediction.bbox[0], prediction.bbox[1] - 5);
+        ctx.fillText(`${prediction.class}: Height - ${scaledHeightMeters.toFixed(2)} meters`, prediction.bbox[0], prediction.bbox[1] - 5);
       });
 
       imageContainer.appendChild(canvas);
