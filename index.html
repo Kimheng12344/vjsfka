@@ -3,66 +3,45 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Height Tracking</title>
+<title>Object Detection and Height Tracking</title>
 </head>
 <body>
-<h1>Height Tracking</h1>
-<input type="file" id="videoInput" accept="video/*">
-<canvas id="outputCanvas" width="640" height="480"></canvas>
+  <h1>Object Detection and Height Tracking</h1>
+  <input type="file" id="imageInput" accept="image/*">
+  <button onclick="detectObjects()">Detect Objects</button>
+  <div id="output"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
-<script>
-  let videoElement;
-  let outputCanvas;
-  let ctx;
-  let model;
-  let scale;
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+  <script>
+    async function detectObjects() {
+      const imageInput = document.getElementById('imageInput');
+      const outputDiv = document.getElementById('output');
+      outputDiv.innerHTML = '';
 
-  async function startTracking() {
-    videoElement = document.createElement('video');
-    videoElement.src = URL.createObjectURL(document.getElementById('videoInput').files[0]);
-    videoElement.onloadedmetadata = () => {
-      scale = calculateScaleFactor(); // Calculate scale factor based on a reference object
-      videoElement.play();
-      detectObjects();
-    };
+      const image = await loadImage(imageInput.files[0]);
+      const model = await cocoSsd.load();
+      const predictions = await model.detect(image);
 
-    outputCanvas = document.getElementById('outputCanvas');
-    ctx = outputCanvas.getContext('2d');
+      predictions.forEach(prediction => {
+        const p = document.createElement('p');
+        p.textContent = `${prediction.class}: Height - ${prediction.bbox[3] - prediction.bbox[1]} pixels`;
+        outputDiv.appendChild(p);
+      });
+    }
 
-    model = await cocoSsd.load();
-  }
-
-  async function detectObjects() {
-    ctx.clearRect(0, 0, outputCanvas.width, outputCanvas.height);
-    const predictions = await model.detect(videoElement);
-
-    predictions.forEach(prediction => {
-      const scaledHeight = prediction.bbox[3] - prediction.bbox[1]; // Height in pixels
-      const realHeight = scaledHeight * scale; // Height in real-world units (e.g., meters)
-      console.log('Object Height:', realHeight);
-
-      ctx.beginPath();
-      ctx.lineWidth = '2';
-      ctx.strokeStyle = 'red';
-      ctx.rect(...prediction.bbox);
-      ctx.stroke();
-      ctx.font = '16px Arial';
-      ctx.fillStyle = 'red';
-      ctx.fillText(`${prediction.class} (${Math.round(prediction.score * 100)}%)`, prediction.bbox[0], prediction.bbox[1] - 5);
-      ctx.fillText(`Height: ${realHeight.toFixed(2)} meters`, prediction.bbox[0], prediction.bbox[1] - 25);
-    });
-
-    requestAnimationFrame(detectObjects);
-  }
-
-  function calculateScaleFactor() {
-    // Calculate the scale factor based on the known size of a reference object and its pixel size in the image
-    const referenceObjectSize = 1.8; // Height of the reference object in meters
-    const referenceObjectPixelSize = 250; // Pixel height of the reference object in the image
-    return referenceObjectSize / referenceObjectPixelSize;
-  }
-</script>
+    function loadImage(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const image = new Image();
+          image.onload = () => resolve(image);
+          image.onerror = (error) => reject(error);
+          image.src = reader.result;
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  </script>
 </body>
 </html>
