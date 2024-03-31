@@ -3,50 +3,37 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Face Detection</title>
+<title>Open Camera</title>
 </head>
 <body>
-<h1>Face Detection using Camera</h1>
+<h1>Open Camera</h1>
 <video id="videoElement" width="640" height="480" autoplay></video>
-<canvas id="canvasElement" width="640" height="480"></canvas>
+<button onclick="startCamera()">Start Camera</button>
+<button onclick="stopCamera()">Stop Camera</button>
 
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-api"></script>
 <script>
-  // Load face-api.js models
-  Promise.all([
-    faceapi.nets.tinyFaceDetector.loadFromUri('https://cdn.jsdelivr.net/npm/@tensorflow-models/face-api/weights'),
-    faceapi.nets.faceLandmark68Net.loadFromUri('https://cdn.jsdelivr.net/npm/@tensorflow-models/face-api/weights')
-  ]).then(startVideo)
+  let stream;
 
-  async function startVideo() {
+  async function startCamera() {
     const videoElement = document.getElementById('videoElement');
 
-    // Use getUserMedia API to access the camera
-    const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-    videoElement.srcObject = stream;
-    videoElement.play();
+    try {
+      // Request access to the camera
+      stream = await navigator.mediaDevices.getUserMedia({ video: true });
 
-    // Start face detection
-    detectFace();
+      // Attach the camera stream to the video element
+      videoElement.srcObject = stream;
+    } catch (error) {
+      console.error('Error accessing the camera:', error);
+    }
   }
 
-  async function detectFace() {
-    const videoElement = document.getElementById('videoElement');
-    const canvasElement = document.getElementById('canvasElement');
-    const displaySize = { width: videoElement.width, height: videoElement.height };
-    faceapi.matchDimensions(canvasElement, displaySize);
-
-    setInterval(async () => {
-      const detections = await faceapi.detectAllFaces(videoElement, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks();
-      const resizedDetections = faceapi.resizeResults(detections, displaySize);
-      
-      // Clear canvas before drawing new detections
-      canvasElement.getContext('2d').clearRect(0, 0, canvasElement.width, canvasElement.height);
-      
-      // Draw face landmarks
-      faceapi.draw.drawFaceLandmarks(canvasElement, resizedDetections);
-    }, 100);
+  function stopCamera() {
+    if (stream) {
+      const tracks = stream.getTracks();
+      tracks.forEach(track => track.stop());
+      stream = null;
+    }
   }
 </script>
 </body>
