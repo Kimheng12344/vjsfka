@@ -11,6 +11,8 @@
 <button onclick="startCamera()">Start Camera</button>
 <button onclick="stopCamera()">Stop Camera</button>
 <button onclick="switchCamera()">Switch Camera</button>
+<button onclick="captureFrame()">Capture</button> <!-- New button for capturing frames -->
+<img id="capturedImage" src="#" alt="Captured Image"> <!-- Placeholder for captured image -->
 
 <script>
   let stream;
@@ -48,6 +50,25 @@
     stopCamera();
     startCamera();
   }
+
+  function captureFrame() {
+    const videoElement = document.getElementById('videoElement');
+    const capturedImageElement = document.getElementById('capturedImage');
+    
+    // Create a canvas element and draw the current frame from the video element
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d');
+    canvas.width = videoElement.videoWidth;
+    canvas.height = videoElement.videoHeight;
+    context.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+    
+    // Convert the canvas image to a data URL and set it as the src for the captured image element
+    const dataURL = canvas.toDataURL('image/jpeg');
+    capturedImageElement.src = dataURL;
+    
+    // Optionally, you can save the dataURL or send it to a server for further processing
+  }
 </script>
 </body>
-</html>
+  </html>
+  
