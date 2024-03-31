@@ -13,12 +13,15 @@
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
 <script>
+  let stream;
+  let currentCamera = 'environment'; // 'user' for front camera, 'environment' for rear camera
+
   async function startCamera() {
     const videoElement = document.getElementById('videoElement');
 
     try {
-      // Request access to the camera
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      // Request access to the camera with the current camera setting
+      stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: currentCamera } });
       videoElement.srcObject = stream;
 
       // Load the COCO-SSD model
@@ -53,7 +56,28 @@
       console.error('Error accessing the camera:', error);
     }
   }
+
+  function switchCamera() {
+    if (currentCamera === 'user') {
+      currentCamera = 'environment';
+    } else {
+      currentCamera = 'user';
+    }
+
+    stopCamera();
+    startCamera();
+  }
+
+  function stopCamera() {
+    if (stream) {
+      const tracks = stream.getTracks();
+      tracks.forEach(track => track.stop());
+      stream = null;
+    }
+  }
 </script>
 <button onclick="startCamera()">Start Camera</button>
+<button onclick="stopCamera()">Stop Camera</button>
+<button onclick="switchCamera()">Switch Camera</button>
 </body>
 </html>
