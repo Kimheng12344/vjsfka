@@ -11,6 +11,7 @@
   <button onclick="detectObjects()">Detect Objects</button>
   <div id="output"></div>
   <div id="imageContainer"></div>
+  <a id="downloadLink" style="display: none;">Download Processed Image</a>
 
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
@@ -19,8 +20,10 @@
       const imageInput = document.getElementById('imageInput');
       const outputDiv = document.getElementById('output');
       const imageContainer = document.getElementById('imageContainer');
+      const downloadLink = document.getElementById('downloadLink');
       outputDiv.innerHTML = '';
       imageContainer.innerHTML = '';
+      downloadLink.style.display = 'none';
 
       const image = await loadImage(imageInput.files[0]);
       const model = await cocoSsd.load();
@@ -32,11 +35,31 @@
       imgElement.width = 400;
       imageContainer.appendChild(imgElement);
 
+      // Draw bounding boxes and display detected objects' heights
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = image.width;
+      canvas.height = image.height;
+      ctx.drawImage(imgElement, 0, 0);
+
       predictions.forEach(prediction => {
-        const p = document.createElement('p');
-        p.textContent = `${prediction.class}: Height - ${prediction.bbox[3] - prediction.bbox[1]} pixels`;
-        outputDiv.appendChild(p);
+        ctx.beginPath();
+        ctx.lineWidth = '2';
+        ctx.strokeStyle = 'red';
+        ctx.rect(...prediction.bbox);
+        ctx.stroke();
+        ctx.font = '16px Arial';
+        ctx.fillStyle = 'red';
+        ctx.fillText(`${prediction.class}: Height - ${prediction.bbox[3] - prediction.bbox[1]} pixels`, prediction.bbox[0], prediction.bbox[1] - 5);
       });
+
+      imageContainer.appendChild(canvas);
+
+      // Convert the canvas to a data URL and create a download link
+      const processedImageUrl = canvas.toDataURL('image/jpeg');
+      downloadLink.href = processedImageUrl;
+      downloadLink.download = 'processed_image.jpg';
+      downloadLink.style.display = 'block';
     }
 
     function loadImage(file) {
